@@ -14,7 +14,7 @@ def scheduler():
         try:
             for data in get_router_info():
                 body_bytes = json_util.dumps(data).encode("utf-8")
-                get_interface(body_bytes)
+                get_interface("rabbitmq", body_bytes)
 
             # for data in get_pending_jobs():
             #     body_bytes = json_util.dumps(data).encode("utf-8")
