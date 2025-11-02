@@ -17,6 +17,22 @@ services:
     networks:
       - app-net
 
+  rabbitmq:
+      image: rabbitmq:3-management
+      ports:
+        - "15672:15672"
+        - "5672:5672"
+      networks:
+        - app-net
+
+  scheduler:
+    build: ./scheduler
+    depends_on:
+      - mongo
+      - rabbitmq
+    networks:
+      - app-net
+
 volumes:
   mongo-data:
 
