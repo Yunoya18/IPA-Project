@@ -9,6 +9,7 @@ from pymongo import MongoClient
 client = MongoClient("mongodb://mongo:27017/")
 db = client["netconfig_db"]
 routers_collection = db["routers"]
+router_info_collection = db["router_info"]
 
 title = "NetConfig - "
 
@@ -17,7 +18,7 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 templates = Jinja2Templates(directory="templates")
 
 @app.get("/")
-async def home(request: Request):
+def home(request: Request):
     routers = list(routers_collection.find())
     return templates.TemplateResponse("index.html", {"title": title + "Home", "request" : request, "routers_list": routers})
 
@@ -25,21 +26,25 @@ async def home(request: Request):
 def router_detail(request: Request, router_id: str):
     try:
         obj_id = ObjectId(router_id)
-        router_data = routers_collection.find_one({"_id": obj_id})
 
-        if router_data is None:
-            raise HTTPException(status_code=404, detail="Router not found")
+        router_auth = routers_collection.find_one({"_id": obj_id})
+        if router_auth is None:
+            raise HTTPException(status_code=404, detail="Router auth data not found")
+
+        ip_to_find = router_auth.get("ip_address")
+        router_data = router_info_collection.find_one({"ip_address": ip_to_find})
 
         return templates.TemplateResponse("router_detail.html", {
-            "title": title + "Detail - " + router_data['ip_address'],
+            "title": title + "Detail - " + ip_to_find, 
             "request" : request,
-            "router": router_data
+            "router_auth": router_auth, # ข้อมูลจาก collection 'routers'
+            "router_info": router_data  # ข้อมูลจาก collection 'router_info'
         })
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/add")
-async def add_router(
+def add_router(
     ip_address: str = Form(...),
     username: str = Form(...),
     password: str = Form(...),
