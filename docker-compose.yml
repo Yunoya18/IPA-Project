@@ -33,6 +33,14 @@ services:
     networks:
       - app-net
 
+  worker:
+    build: ./worker
+    depends_on:
+      - mongo
+      - rabbitmq
+    networks:
+      - app-net
+
 volumes:
   mongo-data:
 
