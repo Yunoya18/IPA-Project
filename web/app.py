@@ -17,7 +17,8 @@ templates = Jinja2Templates(directory="templates")
 
 @app.get("/")
 async def home(request: Request):
-    return templates.TemplateResponse("index.html", {"title": title + "Home", "request" : request})
+    routers = list(routers_collection.find())
+    return templates.TemplateResponse("index.html", {"title": title + "Home", "request" : request, "routers_list": routers})
 
 @app.get("/detail")
 async def router_detail(request: Request):
