@@ -2,6 +2,7 @@ from fastapi import FastAPI, Request, HTTPException, Form
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
+from bson.objectid import ObjectId
 import uvicorn
 from pymongo import MongoClient
 
@@ -20,9 +21,22 @@ async def home(request: Request):
     routers = list(routers_collection.find())
     return templates.TemplateResponse("index.html", {"title": title + "Home", "request" : request, "routers_list": routers})
 
-@app.get("/detail")
-async def router_detail(request: Request):
-    return templates.TemplateResponse("router_detail.html", {"title": title + "Detail", "request" : request})
+@app.get("/detail/{router_id}", response_class=HTMLResponse)
+def router_detail(request: Request, router_id: str):
+    try:
+        obj_id = ObjectId(router_id)
+        router_data = routers_collection.find_one({"_id": obj_id})
+
+        if router_data is None:
+            raise HTTPException(status_code=404, detail="Router not found")
+
+        return templates.TemplateResponse("router_detail.html", {
+            "title": title + "Detail - " + router_data['ip_address'],
+            "request" : request,
+            "router": router_data
+        })
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/add")
 async def add_router(
