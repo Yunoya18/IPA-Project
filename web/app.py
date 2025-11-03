@@ -90,45 +90,24 @@ async def api_update(request: Request):
         )
 
 
-    r1 = update_collection.update_one(
-        {"ip_router": ip_router, "interfaces.name": name},
-        {"$set": {
-            "interfaces.$.ip_address": ip_address,
-            "interfaces.$.subnet_mask": subnet_mask,
-            "interfaces.$.status": status,
-            "interfaces.$.success": False,
-        }},
-    )
-
-    if r1.matched_count == 0:
-        update_collection.update_one(
-            {"ip_router": ip_router},
-            {
-                "$setOnInsert": {"ip_router": ip_router},
-                "$push": {
-                    "interfaces": {
-                        "name": name,
-                        "ip_address": ip_address,
-                        "subnet_mask": subnet_mask,
-                        "status": status,
-                        "success": False,
-                    }
-                },
-            },
-            upsert=True,
-        )
+    update_collection.insert_one({
+        "ip_router": ip_router,
+        "name": name,
+        "ip_address": ip_address,
+        "subnet_mask": subnet_mask,
+        "status": status,
+        "success": "false",
+    })
 
     return {"ok": True}
 
-@app.get("/api/update/status")
 def api_update_status(ip_router: str, name: str):
     doc = update_collection.find_one(
-        {"ip_router": ip_router, "interfaces.name": name},
-        {"_id": 0, "interfaces.$": 1},
+        {"ip_router": ip_router, "name": name},
+        sort=[("updated_at", -1)],  # ✅ ดึงเอกสารล่าสุด
+        projection={"_id": 0, "success": 1}
     )
-    if not doc or "interfaces" not in doc or not doc["interfaces"]:
-        return {"success": False}
-    return {"success": bool(doc["interfaces"][0].get("success", False))}
+    return {"success": bool(doc and doc.get("success", False))}
 
 if __name__ == "__main__":
     uvicorn.run("app:app", host="0.0.0.0", port=8080, reload=True)

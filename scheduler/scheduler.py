@@ -16,7 +16,7 @@ def scheduler():
 
             for data in get_router_update():
                 body_bytes = json_util.dumps(data).encode("utf-8")
-                set_config(body_bytes)
+                set_config("rabbitmq", body_bytes)
 
         except Exception as e:
             print(f"Error: {e}")
