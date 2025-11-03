@@ -15,7 +15,7 @@ def get_router_update():
 
     router_data = list(routers.find({"success" : "false"}))
     if not router_data:
-            return []
+        return []
     router_ids = [router["_id"] for router in router_data]
     routers.update_many({"_id": {"$in": router_ids}}, {"$set": {"success": "pending"}})
     return router_data
