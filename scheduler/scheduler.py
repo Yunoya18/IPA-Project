@@ -6,7 +6,6 @@ from producer import get_interface, set_config
 def scheduler():
     INTERVAL = 60.0
     next_run = time.monotonic()
-    count = 0
 
     while True:
         try:
@@ -19,12 +18,8 @@ def scheduler():
                 set_config("rabbitmq", body_bytes)
 
         except Exception as e:
-            print(f"Error: {e}")
+            print(f"[Scheduler] Error: {e}")
             time.sleep(3)
 
-        count += 1
         next_run += INTERVAL
         time.sleep(max(0.0, next_run - time.monotonic()))
-
-if __name__=='__main__':
-    scheduler()
