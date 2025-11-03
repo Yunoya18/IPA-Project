@@ -6,6 +6,7 @@ def get_router_info():
     routers = db["routers"]
 
     router_data = routers.find()
+    client.close()
     return router_data
 
 def get_router_update():
@@ -14,4 +15,7 @@ def get_router_update():
     routers = db["updates"]
 
     router_data = routers.find({"success" : False})
+    for router in router_data:
+        routers.update_one({"_id": router["_id"]}, {"$set": {"success": "pending"}})
+    client.close()
     return router_data
