@@ -1,9 +1,7 @@
 import time
 from bson import json_util
-from database import get_router_info
-# , get_pending_jobs
-from producer import get_interface
-# , set_config
+from database import get_router_info, get_router_update
+from producer import get_interface, set_config
 
 def scheduler():
     INTERVAL = 60.0
@@ -16,9 +14,9 @@ def scheduler():
                 body_bytes = json_util.dumps(data).encode("utf-8")
                 get_interface("rabbitmq", body_bytes)
 
-            # for data in get_pending_jobs():
-            #     body_bytes = json_util.dumps(data).encode("utf-8")
-            #     set_config(body_bytes)
+            for data in get_router_update():
+                body_bytes = json_util.dumps(data).encode("utf-8")
+                set_config(body_bytes)
 
         except Exception as e:
             print(f"Error: {e}")
