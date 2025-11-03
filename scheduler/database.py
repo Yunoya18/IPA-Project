@@ -5,7 +5,7 @@ def get_router_info():
     db = client["netconfig_db"]
     routers = db["routers"]
 
-    router_data = routers.find()
+    router_data = list(routers.find())
     return router_data
 
 def get_router_update():
@@ -13,7 +13,9 @@ def get_router_update():
     db = client["netconfig_db"]
     routers = db["updates"]
 
-    router_data = routers.find({"success" : "false"})
-    for router in router_data:
-        routers.update_one({"_id": router["_id"]}, {"$set": {"success": "pending"}})
+    router_data = list(routers.find({"success" : "false"}))
+    if not router_data:
+        return []
+    router_ids = [router["_id"] for router in router_data]
+    routers.update_many({"_id": {"$in": router_ids}}, {"$set": {"success": "pending"}})
     return router_data
