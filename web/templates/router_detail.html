@@ -61,6 +61,8 @@
                                 Subnet Mask</th>
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                 Status</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Edit</th>
                         </tr>
                     </thead>
                     <tbody class="bg-white divide-y divide-gray-200">
@@ -70,12 +72,12 @@
                                 <div class="flex items-center">
                                     <div class="w-3 h-3 bg-green-500 rounded-full mr-3"></div>
                                     <span
-                                        class="text-sm font-medium text-gray-900 tracking-wider">{{ iface.name }}</span>
+                                        class="name text-sm font-medium text-gray-900 tracking-wider">{{ iface.name }}</span>
                                 </div>
                             </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ iface.ip_address }}</td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ iface.subnet_mask }}</td>
-                            <td class="px-6 py-4 whitespace-nowrap">
+                            <td class="address px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ iface.ip_address }}</td>
+                            <td class="mask px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ iface.subnet_mask }}</td>
+                            <td class="status px-6 py-4 whitespace-nowrap">
                                 {% if iface.status == 'up' %}
                                 <div class="inline-flex items-center space-x-2 bg-green-100 border border-green-300 text-green-700 px-3 py-1 rounded-full shadow-sm">
                                     <span class="inline-block w-2.5 h-2.5 bg-green-500 rounded-full animate-pulse"></span>
@@ -88,6 +90,13 @@
                                 </div>
                                 {% endif %}
                             </td>
+                            {% if iface.ip_address != router_info.ip_address %}
+                            <td class="px-6 py-4 whitespace-nowrap text-sm">
+                                <button type="submit" class="edit-btn text-yellow-700 px-4 py-2 rounded-lg transition-all duration-300 transform hover:scale-105 flex items-center justify-center shadow-md hover:shadow-lg">
+                                    แก้ไข
+                                </button>
+                            </td>
+                            {% endif %}
                         </tr>
                         {% endfor %}
                     </tbody>
@@ -168,5 +177,149 @@
         </div>
     </div>
 </body>
+<script>
+    const IP_ROUTER = "{{ router_auth.ip_address }}";
+
+    function renderStatusBadge(status) {
+      const s = (status || 'up').toLowerCase();
+      const isUp = s === 'up';
+      const clsWrap = isUp
+        ? 'inline-flex items-center space-x-2 bg-green-100 border border-green-300 text-green-700 px-3 py-1 rounded-full shadow-sm'
+        : 'inline-flex items-center space-x-2 bg-red-100 border border-red-300 text-red-700 px-3 py-1 rounded-full shadow-sm';
+      const clsDot = isUp ? 'bg-green-500' : 'bg-red-500';
+      const label  = isUp ? 'Up' : 'Down';
+      return `<div class="${clsWrap}">
+                <span class="inline-block w-2.5 h-2.5 ${clsDot} rounded-full animate-pulse"></span>
+                <span class="font-medium text-sm">${label}</span>
+              </div>`;
+    }
+
+    async function pollSuccess(ipRouter, ifaceName, onDone, { intervalMs = 3000, maxTries = 40 } = {}) {
+      let tries = 0;
+      const timer = setInterval(async () => {
+        tries += 1;
+        try {
+          const qs = new URLSearchParams({ ip_router: ipRouter, name: ifaceName }).toString();
+          const res = await fetch(`/api/update/status?${qs}`);
+          const data = await res.json().catch(() => ({}));
+          if (data && data.success === true) {
+            clearInterval(timer);
+            onDone(true);
+          } else if (tries >= maxTries) {
+            clearInterval(timer);
+            onDone(false);
+          }
+        } catch {
+          if (tries >= maxTries) {
+            clearInterval(timer);
+            onDone(false);
+          }
+        }
+      }, intervalMs);
+    }
+
+    document.querySelectorAll('.edit-btn').forEach((button) => {
+      button.dataset.mode = 'view';
+      button.addEventListener('click', async (e) => {
+        e.preventDefault();
+
+        const row      = button.closest('tr');
+        const nameCell = row.querySelector('.name');
+        const ipCell   = row.querySelector('.address');
+        const maskCell = row.querySelector('.mask');
+        const statCell = row.querySelector('.status');
+
+        if (button.dataset.mode === 'view') {
+          const origIP   = (ipCell.textContent || '').trim();
+          const origMask = (maskCell.textContent || '').trim();
+          const origStat = ((statCell?.textContent) || 'up').trim().toLowerCase();
+
+          ipCell.dataset.orig   = origIP;
+          maskCell.dataset.orig = origMask;
+
+          ipCell.innerHTML   = `<input type="text" class="border border-gray-300 rounded px-2 py-1 w-40" value="${origIP}">`;
+          maskCell.innerHTML = `<input type="text" class="border border-gray-300 rounded px-2 py-1 w-40" value="${origMask}">`;
+          if (statCell) {
+            statCell.innerHTML = `
+              <select class="iface-status border border-gray-300 rounded px-2 py-1">
+                <option value="up"   ${origStat === 'up' ? 'selected' : ''}>up</option>
+                <option value="down" ${origStat === 'down' ? 'selected' : ''}>down</option>
+              </select>`;
+          }
+
+          button.textContent = 'บันทึก';
+          button.classList.remove('text-yellow-700');
+          button.classList.add('text-green-700');
+          button.dataset.mode = 'edit';
+          return;
+        }
+
+        if (button.dataset.mode === 'edit') {
+          const ipInput   = ipCell.querySelector('input');
+          const maskInput = maskCell.querySelector('input');
+          const statSel   = statCell?.querySelector('select.iface-status');
+
+          const newIP   = (ipInput?.value ?? '').trim()   || (ipCell.dataset.orig   || '');
+          const newMask = (maskInput?.value ?? '').trim() || (maskCell.dataset.orig || '');
+          const newStat = (statSel?.value || 'up').trim();
+          const ifaceName = (nameCell.textContent || '').trim();
+
+          if (!IP_ROUTER || !ifaceName || !newIP || !newMask) {
+            alert('กรอกไม่ครบ');
+            return;
+          }
+
+          const payload = {
+            ip_router: IP_ROUTER,
+            interface: {
+              name: ifaceName,
+              ip_address: newIP,
+              subnet_mask: newMask,
+              status: newStat
+            }
+          };
+
+          try {
+            button.disabled = true;
+            button.textContent = 'กำลังบันทึก...';
+
+            const res = await fetch('/api/update', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(payload)
+            });
+            const txt = await res.text();
+            if (!res.ok) throw new Error(`API ${res.status}: ${txt}`);
+
+            ipCell.textContent   = newIP;
+            maskCell.textContent = newMask;
+            if (statCell) statCell.innerHTML = renderStatusBadge(newStat);
+
+            button.textContent = 'Pending…';
+            button.classList.remove('text-green-700');
+            button.classList.add('text-blue-700');
+
+            pollSuccess(IP_ROUTER, ifaceName, (ok) => {
+              if (ok) {
+                button.textContent = 'แก้ไข';
+                button.classList.remove('text-blue-700');
+                button.classList.add('text-yellow-700');
+                button.disabled = false;
+                button.dataset.mode = 'view';
+              } else {
+                button.textContent = 'Pending… (รอตัว Router)';
+                button.disabled = false;
+              }
+            }, { intervalMs: 3000, maxTries: 40 });
+
+          } catch (err) {
+            alert('บันทึกไม่สำเร็จ: ' + err.message);
+            button.disabled = false;
+            button.textContent = 'บันทึก';
+          }
+        }
+      });
+    });
+  </script>
 
 </html>
