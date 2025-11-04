@@ -27,7 +27,10 @@ def set_config(ip, username, password, int_name, new_ip, new_subnet, new_status)
         output = conn.send_config_set(commands)
         conn.disconnect()
 
-    return output
+    # if "OK" in output or "[OK]" in output:
+    #     return {"success": True, "message": "Configuration applied successfully"}
+    # else:
+    #     return {"success": False, "message": "Configuration may have failed", "output": output}
 
 def parse_route_table(raw_routes):
     routes = []
@@ -55,6 +58,7 @@ def parse_route_table(raw_routes):
         })
     return routes
 
+
 def get_interfaces(ip, username, password):
     device = {
         "device_type": "cisco_ios",
@@ -70,19 +74,24 @@ def get_interfaces(ip, username, password):
         hostname_match = re.search(r"hostname\s+(\S+)", hostname_raw)
         hostname = hostname_match.group(1) if hostname_match else ip
 
-        interfaces = conn.send_command("show ip interface", use_textfsm=True)
-        for iface in interfaces:
-            iface["interface"] = iface.pop("interface", "")
-            iface["ip_address"] = iface.get("ip_address", "")
-            iface["subnet_mask"] = iface.get("ip_subnet", "")
-            iface["status"] = "up" if iface.get("admin_state", "") == "up" else "down"
-            iface["description"] = iface.get("name", "")
-            iface.pop("admin_state", None)
-            iface.pop("ip_subnet", None)
+        result_int = conn.send_command("show ip int br", use_textfsm=True)
+
+        int_details = conn.send_command("show ip interface", use_textfsm=True)
+
+        subnet_map = {}
+        for d in int_details:
+            name = d.get("intf", d.get("interface"))
+            subnet_map[name] = d.get("ip_subnet", "")
+
+        for i in result_int:
+            intf_name = i.get("intf", i.get("interface"))
+            i["subnet_mask"] = subnet_map.get(intf_name, "")
+            i["description"] = intf_name
+            i["status"] = i.get("status", "").lower()
 
         result_route = conn.send_command("show ip route", use_textfsm=True)
         routes = parse_route_table(result_route)
 
         conn.disconnect()
 
-    return hostname, interfaces, routes
+    return hostname, result_int, routes
