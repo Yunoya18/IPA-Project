@@ -3,17 +3,16 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from bson.objectid import ObjectId
-from pymongo import MongoClient
+from pymongo import MongoClient, DESCENDING
 import uvicorn
+from datetime import datetime
 
-# --- MongoDB ---
 client = MongoClient("mongodb://mongo:27017/")
 db = client["netconfig_db"]
 routers_collection = db["routers"]
 router_info_collection = db["router_info"]
 update_collection = db["updates"]
 
-# --- App / Templating ---
 app = FastAPI()
 app.mount("/static", StaticFiles(directory="static"), name="static")
 templates = Jinja2Templates(directory="templates")
@@ -36,6 +35,16 @@ def router_detail(request: Request, router_id: str):
 
     ip_to_find = router_auth.get("ip_address")
     router_data = router_info_collection.find_one({"ip_address": ip_to_find})
+
+    if not router_data:
+        router_data = {
+            "hostname": "Unknown (Pending Sync)",
+            "ip_address": ip_to_find,
+            "status": "down",
+            "last_update": "--:--",
+            "interfaces": [],
+            "routes": []
+        }
 
     return templates.TemplateResponse(
         "router_detail.html",
@@ -105,18 +114,23 @@ async def api_update(request: Request):
         "subnet_mask": subnet_mask,
         "status": status,
         "success": "false",
+        "created_at": datetime.now() 
     })
 
     return {"ok": True}
 
-
+@app.get("/api/update/status")
 def api_update_status(ip_router: str, name: str):
+
     doc = update_collection.find_one(
         {"ip_router": ip_router, "name": name},
-        sort=[("updated_at", -1)],  # ✅ ดึงเอกสารล่าสุด
+        sort=[("_id", DESCENDING)],
         projection={"_id": 0, "success": 1}
     )
-    return {"success": bool(doc and doc.get("success", False))}
+    is_done = bool(doc and doc.get("success") == "true")
+    
+    return {"success": is_done}
 
 if __name__ == "__main__":
     uvicorn.run("app:app", host="0.0.0.0", port=8080, reload=True)
+
