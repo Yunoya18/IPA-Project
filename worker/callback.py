@@ -35,6 +35,5 @@ def callback_config(ch, method, props, body):
         print(f"[CONFIG] Updated {int_name} on {router_ip}")
         save_config(output)
         print(output)
-        ch.basic_ack(delivery_tag=method.delivery_tag)
     except Exception as e:
         print(f"[ERROR][router_config] {e}")

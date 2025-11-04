@@ -20,7 +20,7 @@ def consume(host):
     ch.basic_consume(queue="router_info", on_message_callback=callback_info, auto_ack=True)
 
     ch.queue_declare(queue="router_config")
-    ch.basic_consume(queue="router_config", on_message_callback=callback_config, auto_ack=False)
+    ch.basic_consume(queue="router_config", on_message_callback=callback_config, auto_ack=True)
 
     print("[Consumer] Waiting for messages from router_info and router_config...")
     ch.start_consuming()
