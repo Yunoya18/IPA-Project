@@ -4,7 +4,7 @@ from database import get_router_info, get_router_update
 from producer import get_interface, set_config
 
 def scheduler():
-    INTERVAL = 60.0
+    INTERVAL = 10.0
     next_run = time.monotonic()
 
     while True:
