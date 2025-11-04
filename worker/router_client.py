@@ -58,7 +58,6 @@ def parse_route_table(raw_routes):
         })
     return routes
 
-
 def get_interfaces(ip, username, password):
     device = {
         "device_type": "cisco_ios",
@@ -81,7 +80,7 @@ def get_interfaces(ip, username, password):
         subnet_map = {}
         for d in int_details:
             name = d.get("intf", d.get("interface"))
-            subnet_map[name] = d.get("ip_subnet", "")
+            subnet_map[name] = d.get("ip_mask") or d.get("subnet") or d.get("ip_subnet", "")
 
         for i in result_int:
             intf_name = i.get("intf", i.get("interface"))
