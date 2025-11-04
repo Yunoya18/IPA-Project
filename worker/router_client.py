@@ -97,12 +97,18 @@ def get_interfaces(ip, username, password):
                 status_admin = match_iface_line.group(2).lower()
                 status_line = match_iface_line.group(3).lower()
                 
+                final_status = "down"
+                if status_admin == "up" and status_line == "up":
+                    final_status = "up"
+                elif "administratively down" in status_admin:
+                    final_status = "admin down"
+
                 current_iface_data = {
                     "interface": match_iface_line.group(1),
-                    "status": f"{status_admin}/{status_line}",
+                    "status": final_status,
                     "ip_address": "unassign",
                     "subnet_mask": "unassign",
-                    "description": "" 
+                    "description": ""
                 }
                 continue
 
