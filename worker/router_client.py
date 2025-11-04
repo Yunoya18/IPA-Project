@@ -70,14 +70,19 @@ def get_interfaces(ip, username, password):
         hostname_match = re.search(r"hostname\s+(\S+)", hostname_raw)
         hostname = hostname_match.group(1) if hostname_match else ip
 
-        result_int = conn.send_command("show ip int br", use_textfsm=True)
-        for i in result_int:
-            i["description"] = i.get("interface")
-            i["status"] = i.get("status").lower()
+        interfaces = conn.send_command("show ip interface", use_textfsm=True)
+        for iface in interfaces:
+            iface["interface"] = iface.pop("interface", "")
+            iface["ip_address"] = iface.get("ip_address", "")
+            iface["subnet_mask"] = iface.get("ip_subnet", "")
+            iface["status"] = "up" if iface.get("admin_state", "") == "up" else "down"
+            iface["description"] = iface.get("name", "")
+            iface.pop("admin_state", None)
+            iface.pop("ip_subnet", None)
 
         result_route = conn.send_command("show ip route", use_textfsm=True)
         routes = parse_route_table(result_route)
 
         conn.disconnect()
 
-    return hostname, result_int, routes
+    return hostname, interfaces, routes
