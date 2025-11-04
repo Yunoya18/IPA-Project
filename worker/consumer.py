@@ -1,6 +1,5 @@
 import time, pika
-
-from callback import callback
+from callback import callback_info, callback_config
 
 def consume(host):
     for attempt in range(10):
@@ -16,10 +15,15 @@ def consume(host):
         exit(1)
 
     ch = conn.channel()
+
     ch.queue_declare(queue="router_info")
-    ch.basic_qos(prefetch_count=1)
-    ch.basic_consume(queue="router_info", on_message_callback=callback, auto_ack=True)
+    ch.basic_consume(queue="router_info", on_message_callback=callback_info, auto_ack=True)
+
+    ch.queue_declare(queue="router_config")
+    ch.basic_consume(queue="router_config", on_message_callback=callback_config, auto_ack=True)
+
+    print("[Consumer] Waiting for messages from router_info and router_config...")
     ch.start_consuming()
 
-if __name__=='__main__':
+if __name__ == '__main__':
     consume("rabbitmq")

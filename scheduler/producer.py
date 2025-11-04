@@ -19,4 +19,4 @@ def get_interface(host, body):
 
 
 def set_config(host, body):
-    publish_message(exchange="jobs", queue="set_router", routing_key="router_update", body=body, host=host)
+    publish_message(exchange="jobs", queue="router_config", routing_key="router_update", body=body, host=host)
