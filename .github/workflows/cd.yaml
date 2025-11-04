@@ -36,5 +36,5 @@ jobs:
 
       - name: Up (pull from Hub, no build on prod)
         run: |
-          docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --pull always --no-build
-          docker compose ps
+          docker-compose -f docker-compose.yml -f docker-compose.prod.yml up -d --pull always --no-build
+          docker-compose ps
