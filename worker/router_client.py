@@ -15,7 +15,7 @@ def set_config(ip, username, password, int_name, new_ip, new_subnet, new_status)
         f"interface {int_name}",
         f"ip address {new_ip} {new_subnet}",
         status_cmd,
-        "exit",
+        "end",
         "write memory"
     ]
 
@@ -23,9 +23,9 @@ def set_config(ip, username, password, int_name, new_ip, new_subnet, new_status)
         with ConnectHandler(**device) as conn:
             conn.enable()
             output = conn.send_config_set(commands)
-            conn.disconnect()
 
         output_lower = output.lower()
+        print(f"[INFO] Router config output: {output}")
         success = "ok" in output_lower or "building configuration" in output_lower
 
     except Exception as e:
@@ -133,7 +133,5 @@ def get_interfaces(ip, username, password):
 
         result_route = conn.send_command("show ip route", use_textfsm=True)
         routes = parse_route_table(result_route)
-
-        conn.disconnect()
 
     return hostname, result_int, routes
