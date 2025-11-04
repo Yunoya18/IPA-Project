@@ -16,7 +16,6 @@ def callback_info(ch, method, props, body):
     except Exception as e:
         print(f"[ERROR][router_info] {e}")
 
-
 def callback_config(ch, method, props, body):
     job = json_util.loads(body.decode())
 
@@ -28,12 +27,11 @@ def callback_config(ch, method, props, body):
     new_subnet = job["subnet_mask"]
     new_status = job["status"]
 
-    print(f"[CONFIG] Received job from router_config → {router_ip}")
+    print(f"[CONFIG] Received config job → {router_ip} ({int_name})")
 
     try:
-        output = set_config(router_ip, router_username, router_password, int_name, new_ip, new_subnet, new_status)
-        print(f"[CONFIG] Updated {int_name} on {router_ip}")
-        save_config(output)
-        print(output)
+        success, output = set_config(router_ip, router_username, router_password, int_name, new_ip, new_subnet, new_status)
+        save_config(router_ip, int_name, new_ip, new_subnet, new_status, success)
+        print(f"[CONFIG] {'Success' if success else 'Failed'} updating {int_name} on {router_ip}")
     except Exception as e:
         print(f"[ERROR][router_config] {e}")

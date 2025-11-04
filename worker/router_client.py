@@ -10,11 +10,7 @@ def set_config(ip, username, password, int_name, new_ip, new_subnet, new_status)
         "password": password,
     }
 
-    if new_status.lower() == "down":
-        status_cmd = "shutdown"
-    else:
-        status_cmd = "no shutdown"
-
+    status_cmd = "no shutdown" if new_status.lower() == "up" else "shutdown"
     commands = [
         f"interface {int_name}",
         f"ip address {new_ip} {new_subnet}",
@@ -23,15 +19,19 @@ def set_config(ip, username, password, int_name, new_ip, new_subnet, new_status)
         "write memory"
     ]
 
-    with ConnectHandler(**device) as conn:
-        conn.enable()
-        output = conn.send_config_set(commands)
-        conn.disconnect()
+    try:
+        with ConnectHandler(**device) as conn:
+            conn.enable()
+            output = conn.send_config_set(commands)
+            conn.disconnect()
 
-    # if "OK" in output or "[OK]" in output:
-    #     return {"success": True, "message": "Configuration applied successfully"}
-    # else:
-    #     return {"success": False, "message": "Configuration may have failed", "output": output}
+        success = "OK" in output or "[OK]" in output or "Building configuration" in output
+    except Exception as e:
+        print(f"[ERROR] Router config failed: {e}")
+        success = False
+        output = str(e)
+
+    return success, output
 
 def parse_route_table(raw_routes):
     routes = []
@@ -64,7 +64,6 @@ def cidr_to_mask(cidr):
         return str(ipaddress.ip_network("0.0.0.0" + cidr, strict=False).netmask)
     except Exception:
         return ""
-# ... (import และฟังก์ชันอื่นๆ เหมือนเดิม) ...
 
 def get_interfaces(ip, username, password):
     device = {
@@ -117,7 +116,7 @@ def get_interfaces(ip, username, password):
                 if match_ip:
                     ip_addr = match_ip.group(1)
                     prefix = match_ip.group(2) or ""
-                    subnet_mask = cidr_to_mask(prefix) if prefix else "unassign" # <--- (แก้ตรงนี้ด้วยก็ดีครับ)
+                    subnet_mask = cidr_to_mask(prefix) if prefix else "unassign"
 
                     current_iface_data["ip_address"] = ip_addr
                     current_iface_data["subnet_mask"] = subnet_mask
