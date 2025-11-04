@@ -10,8 +10,8 @@ def callback_info(ch, method, props, body):
     router_password = job["password"]
 
     try:
-        output_int, output_route = get_interfaces(router_ip, router_username, router_password)
-        save_interface_status(router_ip, output_int, output_route)
+        output_hostname, output_int, output_route = get_interfaces(router_ip, router_username, router_password)
+        save_interface_status(router_ip, output_hostname, output_int, output_route)
         print(f"[INFO] Data saved for router {router_ip}")
     except Exception as e:
         print(f"[ERROR][router_info] {e}")
