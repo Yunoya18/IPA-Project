@@ -25,7 +25,9 @@ def set_config(ip, username, password, int_name, new_ip, new_subnet, new_status)
             output = conn.send_config_set(commands)
             conn.disconnect()
 
-        success = "OK" in output or "[OK]" in output or "Building configuration" in output
+        output_lower = output.lower()
+        success = "ok" in output_lower or "building configuration" in output_lower
+
     except Exception as e:
         print(f"[ERROR] Router config failed: {e}")
         success = False
