@@ -271,6 +271,8 @@
 
           const payload = {
             ip_router: IP_ROUTER,
+            username: "{{ router_auth.username }}",
+            password: "{{ router_auth.password }}",
             interface: {
               name: ifaceName,
               ip_address: newIP,

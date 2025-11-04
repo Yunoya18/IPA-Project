@@ -71,6 +71,9 @@ async def api_update(request: Request):
     data = await request.json()
 
     ip_router = (data.get("ip_router") or "").strip()
+    username = (data.get("username") or "").strip()
+    password = (data.get("password") or "").strip()
+
     iface = data.get("interface") or {}
     name = (iface.get("name") or "").strip()
     ip_address = (iface.get("ip_address") or "").strip()
@@ -79,19 +82,24 @@ async def api_update(request: Request):
 
     missing = []
     if not ip_router:   missing.append("ip_router")
+    if not username:    missing.append("username")
+    if not password:    missing.append("password")
     if not name:        missing.append("interface.name")
     if not ip_address:  missing.append("interface.ip_address")
     if not subnet_mask: missing.append("interface.subnet_mask")
     if status not in ("up", "down"):
         raise HTTPException(status_code=400, detail="status must be 'up' or 'down'")
+
     if missing:
         raise HTTPException(
-            status_code=400, detail=f"Missing required fields: {', '.join(missing)}"
+            status_code=400,
+            detail=f"Missing required fields: {', '.join(missing)}"
         )
-
 
     update_collection.insert_one({
         "ip_router": ip_router,
+        "username": username,
+        "password": password,
         "name": name,
         "ip_address": ip_address,
         "subnet_mask": subnet_mask,
@@ -100,6 +108,7 @@ async def api_update(request: Request):
     })
 
     return {"ok": True}
+
 
 def api_update_status(ip_router: str, name: str):
     doc = update_collection.find_one(
