@@ -59,12 +59,12 @@ def parse_route_table(raw_routes):
         })
     return routes
 
-def cidr_to_mask(ip_with_prefix):
+def cidr_to_mask(cidr):
     try:
-        net = ipaddress.ip_interface(ip_with_prefix)
-        return str(net.network.netmask)
+        return str(ipaddress.ip_network("0.0.0.0" + cidr, strict=False).netmask)
     except Exception:
         return ""
+# ... (import และฟังก์ชันอื่นๆ เหมือนเดิม) ...
 
 def get_interfaces(ip, username, password):
     device = {
@@ -74,6 +74,9 @@ def get_interfaces(ip, username, password):
         "password": password,
     }
 
+    result_int = []
+    current_iface_data = None
+
     with ConnectHandler(**device) as conn:
         conn.enable()
 
@@ -81,25 +84,45 @@ def get_interfaces(ip, username, password):
         hostname_match = re.search(r"hostname\s+(\S+)", hostname_raw)
         hostname = hostname_match.group(1) if hostname_match else ip
 
-        result_int = conn.send_command("show ip int br", use_textfsm=True)
-        int_details = conn.send_command("show ip interface", use_textfsm=True)
+        raw_detail = conn.send_command("show ip interface")
 
-        subnet_map = {}
-        for d in int_details:
-            name = d.get("intf") or d.get("interface")
-            mask = d.get("ip_mask") or d.get("subnet") or d.get("ip_subnet", "")
+        for line in raw_detail.splitlines():
+            line = line.strip()
 
-            ip_addr = d.get("ip_address") or ""
-            if not mask and "/" in ip_addr:
-                mask = cidr_to_mask(ip_addr)
+            match_iface_line = re.match(r"^(\S+)\s+is\s+(.*?),?\s+line protocol is\s+(.*)", line)
+            if match_iface_line:
+                if current_iface_data:
+                    result_int.append(current_iface_data)
+                
+                status_admin = match_iface_line.group(2).lower()
+                status_line = match_iface_line.group(3).lower()
+                
+                current_iface_data = {
+                    "interface": match_iface_line.group(1),
+                    "status": f"{status_admin}/{status_line}",
+                    "ip_address": "unassign",
+                    "subnet_mask": "unassign",
+                    "description": "" 
+                }
+                continue
 
-            subnet_map[name] = mask
+            if current_iface_data and "Internet address is" in line:
+                match_ip = re.search(r"Internet address is (\d+\.\d+\.\d+\.\d+)(/\d+)?", line)
+                if match_ip:
+                    ip_addr = match_ip.group(1)
+                    prefix = match_ip.group(2) or ""
+                    subnet_mask = cidr_to_mask(prefix) if prefix else "unassign" # <--- (แก้ตรงนี้ด้วยก็ดีครับ)
 
-        for i in result_int:
-            intf_name = i.get("intf") or i.get("interface")
-            i["subnet_mask"] = subnet_map.get(intf_name, "")
-            i["description"] = intf_name
-            i["status"] = i.get("status", "").lower()
+                    current_iface_data["ip_address"] = ip_addr
+                    current_iface_data["subnet_mask"] = subnet_mask
+
+            if current_iface_data and "Description:" in line:
+                match_desc = re.search(r"Description:\s*(.*)", line)
+                if match_desc:
+                    current_iface_data["description"] = match_desc.group(1)
+
+        if current_iface_data:
+            result_int.append(current_iface_data)
 
         result_route = conn.send_command("show ip route", use_textfsm=True)
         routes = parse_route_table(result_route)
