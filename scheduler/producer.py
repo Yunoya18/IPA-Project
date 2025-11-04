@@ -1,7 +1,12 @@
 import pika
+import os
 
 def publish_message(exchange, queue, routing_key, body, host="rabbitmq"):
-    connection = pika.BlockingConnection(pika.ConnectionParameters(host))
+    user = os.getenv("RABBITMQ_DEFAULT_USER")
+    pwd  = os.getenv("RABBITMQ_DEFAULT_PASS")
+
+    creds = pika.PlainCredentials(user, pwd)
+    connection = pika.BlockingConnection(pika.ConnectionParameters(host, credentials=creds))
     channel = connection.channel()
 
     channel.exchange_declare(exchange=exchange, exchange_type="direct", durable=True)

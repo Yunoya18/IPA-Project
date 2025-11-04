@@ -5,10 +5,14 @@ from fastapi.templating import Jinja2Templates
 from bson.objectid import ObjectId
 from pymongo import MongoClient
 import uvicorn
+import os
 
 # --- MongoDB ---
-client = MongoClient("mongodb://mongo:27017/")
-db = client["netconfig_db"]
+mongo_uri  = os.environ.get("MONGO_URI")
+db_name    = os.environ.get("DB_NAME")
+
+client = MongoClient(mongo_uri)
+db = client[db_name]
 routers_collection = db["routers"]
 router_info_collection = db["router_info"]
 update_collection = db["updates"]

@@ -1,16 +1,23 @@
 from pymongo import MongoClient
+import os
 
 def get_router_info():
-    client = MongoClient("mongodb://mongo:27017/")
-    db = client["netconfig_db"]
+    mongo_uri  = os.environ.get("MONGO_URI")
+    db_name    = os.environ.get("DB_NAME")
+
+    client = MongoClient(mongo_uri)
+    db = client[db_name]
     routers = db["routers"]
 
     router_data = list(routers.find())
     return router_data
 
 def get_router_update():
-    client = MongoClient("mongodb://mongo:27017/")
-    db = client["netconfig_db"]
+    mongo_uri  = os.environ.get("MONGO_URI")
+    db_name    = os.environ.get("DB_NAME")
+
+    client = MongoClient(mongo_uri)
+    db = client[db_name]
     routers = db["updates"]
 
     router_data = list(routers.find({"success" : "false"}))

@@ -1,9 +1,13 @@
 from pymongo import MongoClient
 from datetime import datetime, timezone, timedelta
+import os
 
 def save_interface_status(ip, hostname, interfaces, routes):
-    client = MongoClient("mongodb://mongo:27017/")
-    db = client["netconfig_db"]
+    MONGO_URI = os.getenv("MONGO_URI")
+    DB_NAME = os.getenv("DB_NAME")
+
+    client = MongoClient(MONGO_URI)
+    db = client[DB_NAME]
     collection = db["router_info"]
 
     bkk_timezone = timezone(timedelta(hours=7))
@@ -27,8 +31,11 @@ def save_interface_status(ip, hostname, interfaces, routes):
     client.close()
 
 def save_config(job_id, router_ip, int_name, new_ip, new_subnet, new_status, success):
-    client = MongoClient("mongodb://mongo:27017/")
-    db = client["netconfig_db"]
+    MONGO_URI = os.getenv("MONGO_URI")
+    DB_NAME = os.getenv("DB_NAME")
+
+    client = MongoClient(MONGO_URI)
+    db = client[DB_NAME]
     router_info = db["router_info"]
     updates = db["updates"]
 
