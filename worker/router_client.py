@@ -1,4 +1,5 @@
 from netmiko import ConnectHandler
+import ipaddress
 import re
 
 def set_config(ip, username, password, int_name, new_ip, new_subnet, new_status):
@@ -58,6 +59,13 @@ def parse_route_table(raw_routes):
         })
     return routes
 
+def cidr_to_mask(ip_with_prefix):
+    try:
+        net = ipaddress.ip_interface(ip_with_prefix)
+        return str(net.network.netmask)
+    except Exception:
+        return ""
+
 def get_interfaces(ip, username, password):
     device = {
         "device_type": "cisco_ios",
@@ -74,16 +82,21 @@ def get_interfaces(ip, username, password):
         hostname = hostname_match.group(1) if hostname_match else ip
 
         result_int = conn.send_command("show ip int br", use_textfsm=True)
-
         int_details = conn.send_command("show ip interface", use_textfsm=True)
 
         subnet_map = {}
         for d in int_details:
-            name = d.get("intf", d.get("interface"))
-            subnet_map[name] = d.get("ip_mask") or d.get("subnet") or d.get("ip_subnet", "")
+            name = d.get("intf") or d.get("interface")
+            mask = d.get("ip_mask") or d.get("subnet") or d.get("ip_subnet", "")
+
+            ip_addr = d.get("ip_address") or ""
+            if not mask and "/" in ip_addr:
+                mask = cidr_to_mask(ip_addr)
+
+            subnet_map[name] = mask
 
         for i in result_int:
-            intf_name = i.get("intf", i.get("interface"))
+            intf_name = i.get("intf") or i.get("interface")
             i["subnet_mask"] = subnet_map.get(intf_name, "")
             i["description"] = intf_name
             i["status"] = i.get("status", "").lower()
