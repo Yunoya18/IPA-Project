@@ -40,7 +40,7 @@ def save_config(job_id, router_ip, int_name, new_ip, new_subnet, new_status, suc
 
     if success:
         router_info.update_one(
-            {"ip_address": router_ip, "interfaces.interface": int_name}, # <--- แก้ไข: ใช้ ip_address
+            {"ip_address": router_ip, "interfaces.interface": int_name},
             {"$set": {
                 "interfaces.$.ip_address": new_ip,
                 "interfaces.$.subnet_mask": new_subnet,
