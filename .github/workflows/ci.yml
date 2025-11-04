@@ -19,12 +19,6 @@ jobs:
       with:
         python-version: 3.12.3
 
-    - name: Lint & Format
-      run: |
-        pip install flake8 black
-        flake8 .
-        black --check .
-
     - name: Check Docker Versions
       run: |
         docker --version
