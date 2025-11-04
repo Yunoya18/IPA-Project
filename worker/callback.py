@@ -22,7 +22,6 @@ def callback_config(ch, method, props, body):
 
     try:
         job_id = job["_id"] 
-        
         router_ip = job["ip_router"]
         router_username = job["username"]
         router_password = job["password"]
@@ -33,7 +32,7 @@ def callback_config(ch, method, props, body):
 
         print(f"[CONFIG] Received config job {job_id} → {router_ip} ({int_name})")
 
-        success, output = set_config(router_ip, router_username, router_password, int_name, new_ip, new_subnet, new_status)
+        success = set_config(router_ip, router_username, router_password, int_name, new_ip, new_subnet, new_status)
 
         save_config(job_id, router_ip, int_name, new_ip, new_subnet, new_status, success)
         print(f"[CONFIG] {'Success' if success else 'Failed'} updating {int_name} on {router_ip}")
@@ -42,4 +41,4 @@ def callback_config(ch, method, props, body):
         print(f"[ERROR][router_config] {e}")
 
         if job_id:
-            save_config(job_id, router_ip, int_name, new_ip, new_subnet, new_status, False) # <--- ส่ง False
+            save_config(job_id, router_ip, int_name, new_ip, new_subnet, new_status, False)

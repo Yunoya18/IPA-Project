@@ -33,7 +33,7 @@ def set_config(ip, username, password, int_name, new_ip, new_subnet, new_status)
         success = False
         output = str(e)
 
-    return success, output
+    return success
 
 def parse_route_table(raw_routes):
     routes = []
